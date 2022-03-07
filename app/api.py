@@ -1,4 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter
+from fastapi import Query
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
@@ -19,13 +22,42 @@ def healthcheck():
     return {"Status": "Alive"}
 
 
-@router.get("/extract-topics")
+@router.get("/extract-keywords")
 @limiter.limit("30/minute")
-def extract_topics(request: Request, response: Response, text: str = None):
+async def extract_keywords(request: Request, response: Response, text: str = None, top_n: int = 10):
+    body = await request.json()
+
+    if 'text' in body and body['text'] is not None:
+        text = body['text']
+    if 'top_n' in body and body['top_n'] is not None:
+        top_n = body['top_n']
     if text is None:
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
         return {'Error': 'No text specified'}
     else:
-        topics = core.extract_topics(text)
+        keywords = core.extract_keywords(text, top_n)
         response.status_code = status.HTTP_200_OK
-        return {"topics": topics}
+        return {"keywords": keywords}
+
+
+@router.get("/classify-text-labels")
+@limiter.limit("30/minute")
+async def classify_text_labels(request: Request, response: Response,
+                               text: str = None,
+                               labels: List[str] = Query(None),
+                               multi: bool = True):
+    body = await request.json()
+
+    if 'text' in body and body['text'] is not None:
+        text = body['text']
+    if 'labels' in body and body['labels'] is not None:
+        labels = body['labels']
+    if 'multi' in body and body['multi'] is not None:
+        multi = body['multi']
+    if text is None:
+        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        return {'Error': 'No text specified'}
+    else:
+        labels = core.classify_text_labels(text, labels, multi)
+        response.status_code = status.HTTP_200_OK
+        return {"labels": labels}
