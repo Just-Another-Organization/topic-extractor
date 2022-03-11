@@ -1,3 +1,6 @@
+# Models cache folder
+app/services/.cache
+
 # JetBrains IDE
 .idea
 
